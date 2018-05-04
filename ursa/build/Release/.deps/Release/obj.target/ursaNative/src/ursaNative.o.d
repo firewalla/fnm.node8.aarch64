@@ -31,7 +31,7 @@ Release/obj.target/ursaNative/src/ursaNative.o: ../src/ursaNative.cc \
  /home/pi/.node-gyp/8.7.0/include/node/openssl/asn1.h \
  /home/pi/.node-gyp/8.7.0/include/node/openssl/e_os2.h \
  /home/pi/.node-gyp/8.7.0/include/node/openssl/opensslconf.h \
- /home/pi/.node-gyp/8.7.0/include/node/openssl/./archs/linux-armv4/opensslconf.h \
+ /home/pi/.node-gyp/8.7.0/include/node/openssl/./archs/linux-aarch64/opensslconf.h \
  /home/pi/.node-gyp/8.7.0/include/node/openssl/bio.h \
  /home/pi/.node-gyp/8.7.0/include/node/openssl/crypto.h \
  /home/pi/.node-gyp/8.7.0/include/node/openssl/stack.h \
@@ -102,7 +102,7 @@ Release/obj.target/ursaNative/src/ursaNative.o: ../src/ursaNative.cc \
 /home/pi/.node-gyp/8.7.0/include/node/openssl/asn1.h:
 /home/pi/.node-gyp/8.7.0/include/node/openssl/e_os2.h:
 /home/pi/.node-gyp/8.7.0/include/node/openssl/opensslconf.h:
-/home/pi/.node-gyp/8.7.0/include/node/openssl/./archs/linux-armv4/opensslconf.h:
+/home/pi/.node-gyp/8.7.0/include/node/openssl/./archs/linux-aarch64/opensslconf.h:
 /home/pi/.node-gyp/8.7.0/include/node/openssl/bio.h:
 /home/pi/.node-gyp/8.7.0/include/node/openssl/crypto.h:
 /home/pi/.node-gyp/8.7.0/include/node/openssl/stack.h:
