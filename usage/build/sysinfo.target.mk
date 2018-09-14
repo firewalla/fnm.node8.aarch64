@@ -36,10 +36,13 @@ CFLAGS_CC_Debug := \
 	-std=gnu++0x
 
 INCS_Debug := \
-	-I/home/pi/.node-gyp/8.7.0/include/node \
-	-I/home/pi/.node-gyp/8.7.0/src \
-	-I/home/pi/.node-gyp/8.7.0/deps/uv/include \
-	-I/home/pi/.node-gyp/8.7.0/deps/v8/include \
+	-I/home/pi/.node-gyp/8.12.0/include/node \
+	-I/home/pi/.node-gyp/8.12.0/src \
+	-I/home/pi/.node-gyp/8.12.0/deps/openssl/config \
+	-I/home/pi/.node-gyp/8.12.0/deps/openssl/openssl/include \
+	-I/home/pi/.node-gyp/8.12.0/deps/uv/include \
+	-I/home/pi/.node-gyp/8.12.0/deps/zlib \
+	-I/home/pi/.node-gyp/8.12.0/deps/v8/include \
 	-I$(srcdir)/node_modules/nan
 
 DEFS_Release := \
@@ -73,10 +76,13 @@ CFLAGS_CC_Release := \
 	-std=gnu++0x
 
 INCS_Release := \
-	-I/home/pi/.node-gyp/8.7.0/include/node \
-	-I/home/pi/.node-gyp/8.7.0/src \
-	-I/home/pi/.node-gyp/8.7.0/deps/uv/include \
-	-I/home/pi/.node-gyp/8.7.0/deps/v8/include \
+	-I/home/pi/.node-gyp/8.12.0/include/node \
+	-I/home/pi/.node-gyp/8.12.0/src \
+	-I/home/pi/.node-gyp/8.12.0/deps/openssl/config \
+	-I/home/pi/.node-gyp/8.12.0/deps/openssl/openssl/include \
+	-I/home/pi/.node-gyp/8.12.0/deps/uv/include \
+	-I/home/pi/.node-gyp/8.12.0/deps/zlib \
+	-I/home/pi/.node-gyp/8.12.0/deps/v8/include \
 	-I$(srcdir)/node_modules/nan
 
 OBJS := \
