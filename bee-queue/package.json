@@ -47,49 +47,14 @@
   "engines": {
     "node": ">= 4"
   },
-  "author": {
-    "name": "Lewis J Ellis",
-    "email": "me@lewisjellis.com"
-  },
+  "author": "Lewis J Ellis <me@lewisjellis.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bee-queue/bee-queue.git"
+    "url": "https://github.com/bee-queue/bee-queue.git"
   },
   "bugs": {
     "url": "https://github.com/bee-queue/bee-queue/issues"
   },
-  "homepage": "https://github.com/bee-queue/bee-queue",
-  "gitHead": "9cd6a3fa62bad01e445c0ea13a67a1a8e52fe414",
-  "_id": "bee-queue@1.2.2",
-  "_npmVersion": "5.5.1",
-  "_nodeVersion": "8.9.1",
-  "_npmUser": {
-    "name": "lewisjellis",
-    "email": "me@lewisjellis.com"
-  },
-  "dist": {
-    "integrity": "sha512-Nw6VXHkAdfnMEp5bdffTSZEBnHuZSoRLjwmurfaQp6xmcxP+XsaqKClH1/XLmoAkrOuW40j9mLGlsLR/25ljwQ==",
-    "shasum": "ad82226de14f42fed4b86b066b18c4829ffd3600",
-    "tarball": "https://registry.npmjs.org/bee-queue/-/bee-queue-1.2.2.tgz"
-  },
-  "maintainers": [
-    {
-      "name": "skeggse",
-      "email": "skeggse@gmail.com"
-    },
-    {
-      "name": "lewisjellis",
-      "email": "me@lewisjellis.com"
-    }
-  ],
-  "_npmOperationalInternal": {
-    "host": "s3://npm-registry-packages",
-    "tmp": "tmp/bee-queue-1.2.2.tgz_1516909538762_0.1339190066792071"
-  },
-  "directories": {},
-  "_shasum": "ad82226de14f42fed4b86b066b18c4829ffd3600",
-  "_resolved": "https://registry.npmjs.org/bee-queue/-/bee-queue-1.2.2.tgz",
-  "_from": "bee-queue@latest",
-  "readme": "ERROR: No README data found!"
+  "homepage": "https://github.com/bee-queue/bee-queue"
 }

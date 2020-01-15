@@ -31,7 +31,7 @@ function Argv (args, cwd) {
         .join(' ')
     ;
     
-    if (process.env._ != undefined && process.argv[1] == process.env._) {
+    if (process.argv[1] == process.env._) {
         self.$0 = process.env._.replace(
             path.dirname(process.execPath) + '/', ''
         );
@@ -168,9 +168,7 @@ function Argv (args, cwd) {
         else {
             if (opt.alias) self.alias(key, opt.alias);
             if (opt.demand) self.demand(key);
-            if (typeof opt.default !== 'undefined') {
-                self.default(key, opt.default);
-            }
+            if (opt.default) self.default(key, opt.default);
             
             if (opt.boolean || opt.type === 'boolean') {
                 self.boolean(key);
@@ -313,7 +311,15 @@ function Argv (args, cwd) {
             var value = typeof val !== 'string' || isNaN(num) ? val : num;
             if (flags.strings[key]) value = val;
             
-            setKey(argv, key.split('.'), value);
+            if (key in argv && !flags.bools[key]) {
+                if (!Array.isArray(argv[key])) {
+                    argv[key] = [ argv[key] ];
+                }
+                argv[key].push(value);
+            }
+            else {
+                argv[key] = value;
+            }
             
             (aliases[key] || []).forEach(function (x) {
                 argv[x] = argv[key];
@@ -328,10 +334,7 @@ function Argv (args, cwd) {
                 break;
             }
             else if (arg.match(/^--.+=/)) {
-                // Using [\s\S] instead of . because js doesn't support the
-                // 'dotall' regex modifier. See:
-                // http://stackoverflow.com/a/1068308/13216
-                var m = arg.match(/^--([^=]+)=([\s\S]*)$/);
+                var m = arg.match(/^--([^=]+)=(.*)/);
                 setArg(m[1], m[2]);
             }
             else if (arg.match(/^--no-.+/)) {
@@ -342,12 +345,11 @@ function Argv (args, cwd) {
                 var key = arg.match(/^--(.+)/)[1];
                 var next = args[i + 1];
                 if (next !== undefined && !next.match(/^-/)
-                && !flags.bools[key]
-                && (aliases[key] ? !flags.bools[aliases[key]] : true)) {
+                && !flags.bools[key]) {
                     setArg(key, next);
                     i++;
                 }
-                else if (/^(true|false)$/.test(next)) {
+                else if (flags.bools[key] && /true|false/.test(next)) {
                     setArg(key, next === 'true');
                     i++;
                 }
@@ -374,12 +376,11 @@ function Argv (args, cwd) {
                     var key = arg.slice(-1)[0];
                     
                     if (args[i+1] && !args[i+1].match(/^-/)
-                    && !flags.bools[key]
-                    && (aliases[key] ? !flags.bools[aliases[key]] : true)) {
+                    && !flags.bools[key]) {
                         setArg(key, args[i+1]);
                         i++;
                     }
-                    else if (args[i+1] && /true|false/.test(args[i+1])) {
+                    else if (args[i+1] && flags.bools[key] && /true|false/.test(args[i+1])) {
                         setArg(key, args[i+1] === 'true');
                         i++;
                     }
@@ -397,9 +398,6 @@ function Argv (args, cwd) {
         Object.keys(defaults).forEach(function (key) {
             if (!(key in argv)) {
                 argv[key] = defaults[key];
-                if (key in aliases) {
-                    argv[aliases[key]] = defaults[key];
-                }
             }
         });
         
@@ -457,22 +455,3 @@ function rebase (base, dir) {
     ).replace(/\/$/,'').replace(/^$/, '.');
     return p.match(/^[.\/]/) ? p : './' + p;
 };
-
-function setKey (obj, keys, value) {
-    var o = obj;
-    keys.slice(0,-1).forEach(function (key) {
-        if (o[key] === undefined) o[key] = {};
-        o = o[key];
-    });
-    
-    var key = keys[keys.length - 1];
-    if (o[key] === undefined || typeof o[key] === 'boolean') {
-        o[key] = value;
-    }
-    else if (Array.isArray(o[key])) {
-        o[key].push(value);
-    }
-    else {
-        o[key] = [ o[key], value ];
-    }
-}

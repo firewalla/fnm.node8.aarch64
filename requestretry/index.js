@@ -80,7 +80,7 @@ function Request(url, options, f, retryConfig) {
 
   /**
    * Return true if the request should be retried
-   * @type {Function} (err, response) -> Boolean
+   * @type {Function} (err, response, body, options) -> [Boolean, Object (optional)]
    */
   this.retryStrategy = _.isFunction(options.retryStrategy) ? options.retryStrategy : RetryStrategies.HTTPOrNetworkError;
 
@@ -121,11 +121,24 @@ Request.prototype._tryUntilFail = function () {
   this.maxAttempts--;
   this.attempts++;
 
-  this._req = Request.request(this.options, function (err, response, body) {
+  this._req = Request.request(this.options, async function (err, response, body) {
     if (response) {
       response.attempts = this.attempts;
     }
-    if (this.retryStrategy(err, response, body) && this.maxAttempts > 0) {
+
+    if (err) {
+      err.attempts = this.attempts;
+    }
+
+    var mustRetry = await Promise.resolve(this.retryStrategy(err, response, body, _.cloneDeep(this.options)));
+    if (_.isObject(mustRetry) && _.has(mustRetry, 'mustRetry')) {
+      if (_.isObject(mustRetry.options)) {
+        this.options = mustRetry.options; //if retryStrategy supposes different request options for retry
+      }
+      mustRetry = mustRetry.mustRetry;
+    }
+
+    if (mustRetry && this.maxAttempts > 0) {
       this._timeout = setTimeout(this._tryUntilFail.bind(this), this.delayStrategy.call(this, err, response, body));
       return;
     }
@@ -161,7 +174,7 @@ Request.prototype.abort = function () {
 
 function Factory(url, options, f) {
   var retryConfig = _.chain(_.isObject(url) ? url : options || {}).defaults(DEFAULTS).pick(Object.keys(DEFAULTS)).value();
-  var req = new Request(url, options, f, retryConfig);
+  var req = new Factory.Request(url, options, f, retryConfig);
   req._tryUntilFail();
   return req;
 }

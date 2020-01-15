@@ -1,29 +1,11 @@
-(function (root, factory) {
-	if (typeof define === 'function' && define.amd) {
-		define(['moment-timezone'], factory);
-	} else if (typeof exports === 'object') {
-		module.exports = factory(require('moment-timezone'), require('child_process'));
-	} else {
-		root.Cron = factory(root.moment);
-	}
-}(this, function (moment, child_process) {
-
-var exports = {},
+var exports,
 		timeUnits = ['second', 'minute', 'hour', 'dayOfMonth', 'month', 'dayOfWeek'],
-		spawn = child_process && child_process.spawn;
+		spawn = require('child_process').spawn,
+		moment = require('moment-timezone');
 
-function CronTime(source, zone, utcOffset) {
+function CronTime(source, zone) {
 	this.source = source;
-
-	if (zone) {
-		if (moment.tz.names().indexOf(zone) === -1) {
-			throw new Error('Invalid timezone.');
-		}
-
-		this.zone = zone;
-	}
-
-	if (utcOffset) this.utcOffset = utcOffset;
+	this.zone = zone;
 
 	var that = this;
 	timeUnits.map(function(timeUnit){
@@ -35,7 +17,8 @@ function CronTime(source, zone, utcOffset) {
 		this.realDate = true;
 	} else {
 		this._parse();
-		this._verifyParse();
+		if (!this._verifyParse())
+			throw Error("Could not verify a valid date. Please verify your parameters.");
 	}
 }
 
@@ -100,22 +83,22 @@ CronTime.prototype = {
 			}
 
 			if (!ok) {
-				console.warn('Month \'' + m + '\' is limited to \'' + con + '\' days.');
+				console.error("Month '" + m + "' is limited to '" + con + "' days.");
+				return false;
 			}
 		}
+
+		return true;
 	},
 
 	/**
 	 * calculates the next send time
 	 */
-	sendAt: function(i) {
+	sendAt: function() {
 		var date = this.realDate ? this.source : moment();
 		// Set the timezone if given (http://momentjs.com/timezone/docs/#/using-timezones/parsing-in-zone/)
 		if (this.zone)
 			date = date.tz(this.zone);
-
-		if (this.utcOffset)
-			date = date.utcOffset(this.utcOffset);
 
 		if (this.realDate)
 			return date;
@@ -131,21 +114,9 @@ CronTime.prototype = {
 			date = date.add(1, 's');
 		}
 
-		//If the i argument is not given, return the next send time
-		if(isNaN(i) || i < 0){
-			date = this._getNextDateFrom(date);
-			return date;
-		}
-		//Else return the next i send times
-		else{
-			var dates = [];
-			for(;i>0;i--){
-				date = this._getNextDateFrom(date);
-				dates.push(moment(date));
-				if(i>1) date.add(1,'s');
-			}
-			return dates;
-		}
+		date = this._getNextDateFrom(date);
+
+		return date;
 	},
 
 	/**
@@ -178,15 +149,15 @@ CronTime.prototype = {
 	_getNextDateFrom: function(start) {
 		var date = moment(start);
 		if (date.toString() == 'Invalid date') {
-			console.log('ERROR: You specified an invalid date.');
+			console.log("ERROR: You specified an invalid date.");
 			return date;
 		}
 		if (this.realDate && start < new Date())
-			console.log('WARNING: Date in past. Will never be fired.');
+			console.log("WARNING: Date in past. Will never be fired.");
 		if (this.realDate) return date;
 
 		//sanity check
-		while (true) {
+		while (1) {
 			var diff = date - start,
 				origDate = new Date(date);
 
@@ -258,7 +229,8 @@ CronTime.prototype = {
 	 * get next date that is a valid DST date
 	 */
 	_findDST: function(date) {
-		var newDate = moment(date);
+		var newDate = moment(date),
+		addSeconds = 1;
 		while (newDate <= date)
 			newDate.add(1, 's');
 
@@ -315,56 +287,55 @@ CronTime.prototype = {
 	},
 
 	_parseField: function(field, type, constraints) {
-		var rangePattern = /^(\d+)(?:-(\d+))?(?:\/(\d+))?$/g,
-		typeObj = this[type],
-		pointer,
-		low = constraints[0],
-		high = constraints[1];
+		 var rangePattern = /^(\d+)(?:-(\d+))?(?:\/(\d+))?$/g,
+		 typeObj = this[type],
+		 diff, pointer,
+		 low = constraints[0],
+		 high = constraints[1];
 
-		// * is a shortcut to [lower-upper] range
-		field = field.replace(/\*/g, low + '-' + high);
+		 // * is a shortcut to [lower-upper] range
+		 field = field.replace(/\*/g, low + '-' + high);
 
-		//commas separate information, so split based on those
-		var allRanges = field.split(',');
+		 //commas separate information, so split based on those
+		 var allRanges = field.split(',');
 
-		for (var i = 0; i < allRanges.length; i++) {
-			if (allRanges[i].match(rangePattern)) {
-				allRanges[i].replace(rangePattern, function($0, lower, upper, step) {
-					step = parseInt(step) || 1;
-					// Positive integer higher than constraints[0]
-					lower = Math.min(Math.max(low, ~~Math.abs(lower)), high);
+		 for (var i = 0; i < allRanges.length; i++) {
+			 if (allRanges[i].match(rangePattern)) {
+				 allRanges[i].replace(rangePattern, function($0, lower, upper, step) {
+					 step = parseInt(step) || 1;
+					 // Positive integer higher than constraints[0]
+					 lower = Math.min(Math.max(low, ~~Math.abs(lower)), high);
 
-					// Positive integer lower than constraints[1]
-					upper = upper ? Math.min(high, ~~Math.abs(upper)) : lower;
+					 // Positive integer lower than constraints[1]
+					 upper = upper ? Math.min(high, ~~Math.abs(upper)) : lower;
 
-					// Count from the lower barrier to the upper
-					pointer = lower;
+					 // Count from the lower barrier to the upper
+					 pointer = lower;
 
-					do {
-						typeObj[pointer] = true
-						pointer += step;
-					} while (pointer <= upper);
-				});
-			} else {
-				throw new Error('Field (' + field + ') cannot be parsed');
-			}
-		}
-	}
+					 do {
+						 typeObj[pointer] = true
+					 pointer += step;
+					 } while (pointer <= upper);
+				 });
+			 } else {
+				 throw new Error('Field (' + field + ') cannot be parsed');
+			 }
+		 }
+	 }
 };
 
 function command2function(cmd) {
-	var command, args;
 	switch (typeof cmd) {
 		case 'string':
-			args = cmd.split(' ');
-			command = args.shift();
+			var args = cmd.split(' ');
+			var command = args.shift();
 
 			cmd = spawn.bind(undefined, command, args);
 			break;
 		case 'object':
-			command = cmd && cmd.command;
+			var command = cmd && cmd.command;
 			if (command) {
-				args = cmd.args;
+				var args = cmd.args;
 				var options = cmd.options;
 
 				cmd = spawn.bind(undefined, command, args, options);
@@ -375,9 +346,9 @@ function command2function(cmd) {
 	return cmd
 }
 
-function CronJob(cronTime, onTick, onComplete, startNow, timeZone, context, runOnInit, utcOffset) {
+function CronJob(cronTime, onTick, onComplete, startNow, timeZone, context, runOnInit) {
 	var _cronTime = cronTime;
-	if (typeof cronTime != 'string' && arguments.length == 1) {
+	if (typeof cronTime != "string" && arguments.length == 1) {
 		//crontime is an object...
 		onTick = cronTime.onTick;
 		onComplete = cronTime.onComplete;
@@ -386,13 +357,12 @@ function CronJob(cronTime, onTick, onComplete, startNow, timeZone, context, runO
 		timeZone = cronTime.timeZone;
 		runOnInit = cronTime.runOnInit;
 		_cronTime = cronTime.cronTime;
-		utcOffset = cronTime.utcOffset;
 	}
 
 	this.context = (context || this);
 	this._callbacks = [];
 	this.onComplete = command2function(onComplete);
-	this.cronTime = new CronTime(_cronTime, timeZone, utcOffset);
+	this.cronTime = new CronTime(_cronTime, timeZone);
 
 	addCallback.call(this, command2function(onTick));
 
@@ -423,10 +393,6 @@ var fireOnTick = function() {
 }
 CronJob.prototype.fireOnTick = fireOnTick;
 
-CronJob.prototype.nextDates = function(i) {
-	return this.cronTime.sendAt(i);
-}
-
 var start = function() {
 	if (this.running) return;
 
@@ -434,37 +400,19 @@ var start = function() {
 	var self = this;
 	var timeout = this.cronTime.getTimeout();
 	var remaining = 0;
-	var startTime;
 
 	if (this.cronTime.realDate) this.runOnce = true;
-
-	function _setTimeout(timeout) {
-		startTime = Date.now();
-		self._timeout = setTimeout(callbackWrapper, timeout);
-	}
 
 	// The callback wrapper checks if it needs to sleep another period or not
 	// and does the real callback logic when it's time.
 
 	function callbackWrapper() {
-		var diff = startTime + timeout - Date.now();
-
-		if (diff > 0) {
-			var newTimeout = self.cronTime.getTimeout();
-
-			if (newTimeout > diff) {
-				newTimeout = diff;
-			}
-
-			remaining += newTimeout;
-		}
 
 		// If there is sleep time remaining, calculate how long and go to sleep
 		// again. This processing might make us miss the deadline by a few ms
 		// times the number of sleep sessions. Given a MAXDELAY of almost a
 		// month, this should be no issue.
 
-		self.lastExecution = new Date();
 		if (remaining) {
 			if (remaining > MAXDELAY) {
 				remaining -= MAXDELAY;
@@ -474,7 +422,7 @@ var start = function() {
 				remaining = 0;
 			}
 
-			_setTimeout(timeout);
+			self._timeout = setTimeout(callbackWrapper, timeout);
 		} else {
 
 			// We have arrived at the correct point in time.
@@ -500,17 +448,13 @@ var start = function() {
 			timeout = MAXDELAY;
 		}
 
-		_setTimeout(timeout);
+		this._timeout = setTimeout(callbackWrapper, timeout);
 	} else {
 		this.stop();
 	}
 }
 
 CronJob.prototype.start = start;
-
-CronJob.prototype.lastDate = function(){
-	return this.lastExecution;
-};
 
 /**
  * Stop the cronjob.
@@ -522,25 +466,23 @@ CronJob.prototype.stop = function() {
 	if (typeof this.onComplete == 'function') this.onComplete();
 }
 
-exports.job = function(cronTime, onTick, onComplete, startNow, timeZone, context, runOnInit) {
-	return new CronJob(cronTime, onTick, onComplete, startNow, timeZone, context, runOnInit);
+if (exports) {
+	exports.job = function(cronTime, onTick, onComplete) {
+		return new CronJob(cronTime, onTick, onComplete);
+	}
+
+	exports.time = function(cronTime, timeZone) {
+		return new CronTime(cronTime, timeZone);
+	}
+
+	exports.sendAt = function(cronTime) {
+		return exports.time(cronTime).sendAt();
+	}
+
+	exports.timeout = function(cronTime) {
+		return exports.time(cronTime).getTimeout();
+	}
+
+	exports.CronJob = CronJob;
+	exports.CronTime = CronTime;
 }
-
-exports.time = function(cronTime, timeZone) {
-	return new CronTime(cronTime, timeZone);
-}
-
-exports.sendAt = function(cronTime) {
-	return exports.time(cronTime).sendAt();
-}
-
-exports.timeout = function(cronTime) {
-	return exports.time(cronTime).getTimeout();
-}
-
-exports.CronJob = CronJob;
-exports.CronTime = CronTime;
-
-return exports;
-
-}));

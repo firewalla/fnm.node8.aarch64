@@ -32,6 +32,7 @@ var dgram = require('dgram')
   , os = require('os')
   , async = require('async')
   , extend = require('extend')
+  , SsdpHeader = require('./ssdpHeader')
 
 var httpHeader = /HTTP\/\d{1}\.\d{1} \d+ .*/
   , ssdpHeader = /^([^:]+):\s*(.*)$/
@@ -57,6 +58,7 @@ var nodeVersion = process.version.substr(1)
  * @param {String} opts.description Path to SSDP description file
  * @param {String} opts.udn SSDP Unique Device Name
  * @param {Object} opts.headers Additional headers
+ * @param {Array} opts.interfaces Names of interfaces to use. When set, other interfaces are ignored.
  *
  * @param {Number} opts.ttl Packet TTL
  * @param {Boolean} opts.allowWildcards Allow wildcards in M-SEARCH packets (non-standard)
@@ -69,15 +71,15 @@ function SSDP(opts) {
 
   if (!(this instanceof SSDP)) return new SSDP(opts)
 
-  this._subclass = this._subclass || 'ssdp-base'
+  this._subclass = this._subclass || 'node-ssdp:base'
 
   opts = opts || {}
+
+  this._logger = opts.customLogger || debug(this._subclass)
 
   EE.call(self)
 
   this._init(opts)
-
-  this._createSockets()
 }
 
 
@@ -90,11 +92,10 @@ util.inherits(SSDP, EE)
  * @private
  */
 SSDP.prototype._init = function (opts) {
-  this._logger = opts.customLogger || debug(this._subclass)
-
   this._ssdpSig = opts.ssdpSig || getSsdpSignature()
 
   this._explicitSocketBind = opts.explicitSocketBind
+  this._interfaces = opts.interfaces
   this._reuseAddr = opts.reuseAddr === undefined ? true : opts.reuseAddr
 
   // User shouldn't need to set these
@@ -103,7 +104,9 @@ SSDP.prototype._init = function (opts) {
   this._ssdpTtl = opts.ssdpTtl || 4
 
   // port on which to listen for messages
-  // this generally should be left up to the system
+  // this generally should be left up to the system for SSDP Client
+  // For server, this will be set by the server constructor
+  // unless user sets a value.
   this._sourcePort = opts.sourcePort || 0
 
   this._adInterval = opts.adInterval || 10000
@@ -115,8 +118,12 @@ SSDP.prototype._init = function (opts) {
       enumerable: true,
       get: opts.location
     })
+  } else if (typeof opts.location === 'object') {
+    this._locationProtocol = opts.location.protocol || 'http://'
+    this._locationPort = opts.location.port
+    this._locationPath = opts.location.path
   } else {
-    // Probably should specify these
+    // Probably should specify this explicitly
     this._location = opts.location || 'http://' + ip.address() + ':' + 10293 + '/upnp/desc.html'
   }
 
@@ -151,27 +158,33 @@ SSDP.prototype._createSockets = function () {
   this.sockets = {}
 
   Object.keys(interfaces).forEach(function (iName) {
-    self._logger('discovering all IPs from interface %s', iName)
+    if (!self._interfaces || self._interfaces.indexOf(iName) > -1) {
+      self._logger('discovering all IPs from interface %s', iName)
 
-    interfaces[iName].forEach(function (ipInfo) {
-      if (ipInfo.internal == false && ipInfo.family == "IPv4") {
-        self._logger('Will use interface %s', iName)
-        var socket
+      interfaces[iName].forEach(function (ipInfo) {
+        if (ipInfo.internal == false && ipInfo.family == "IPv4") {
+          self._logger('Will use interface %s', iName)
+          var socket
 
-        if (parseFloat(process.version.replace(/\w/, '')) >= 0.12) {
-          socket = dgram.createSocket({type: 'udp4', reuseAddr: self._reuseAddr})
-        } else {
-          socket = dgram.createSocket('udp4')
+          if (parseFloat(process.version.replace(/\w/, '')) >= 0.12) {
+            socket = dgram.createSocket({type: 'udp4', reuseAddr: self._reuseAddr})
+          } else {
+            socket = dgram.createSocket('udp4')
+          }
+
+          if (socket) {
+            socket.unref()
+
+            self.sockets[ipInfo.address] = socket
+          }
         }
-
-        if (socket) {
-          socket.unref()
-
-          self.sockets[ipInfo.address] = socket
-        }  
-      }
-    })
+      })
+    }
   })
+
+  if (Object.keys(this.sockets) == 0) {
+    throw new Error('No sockets available, cannot start.')
+  }
 }
 
 
@@ -395,25 +408,27 @@ SSDP.prototype._respondToSearch = function (serviceType, rinfo) {
     }
 
     if (acceptor(usn, serviceType)) {
-      var pkt = self._getSSDPHeader(
-        '200 OK', extend({
-          'ST': serviceType === c.SSDP_ALL ? usn : serviceType,
-          'USN': udn,
-          'LOCATION': self._location,
-          'CACHE-CONTROL': 'max-age=' + self._ttl,
-          'DATE': new Date().toUTCString(),
-          'SERVER': self._ssdpSig,
-          'EXT': ''
-        }, self._extraHeaders),
-        true
-      )
+      var header = new SsdpHeader('200 OK', {
+        'ST': serviceType === c.SSDP_ALL ? usn : serviceType,
+        'USN': udn,
+        'CACHE-CONTROL': 'max-age=' + self._ttl,
+        'DATE': new Date().toUTCString(),
+        'SERVER': self._ssdpSig,
+        'EXT': ''
+      }, true)
+
+      header.setHeaders(self._extraHeaders)
+
+      if (self._location) {
+        header.setHeader('LOCATION', self._location)
+      } else {
+        header.overrideLocationOnSend()
+      }
 
       self._logger('Sending a 200 OK for an M-SEARCH: %o', {'peer': peer_addr, 'port': peer_port})
 
-      var message = new Buffer(pkt)
-
-      self._send(message, peer_addr, peer_port, function (err, bytes) {
-        self._logger('Sent M-SEARCH response: %o', {'message': pkt})
+      self._send(header, peer_addr, peer_port, function (err, bytes) {
+        self._logger('Sent M-SEARCH response: %o', {'message': header.toString(), id: header.id()})
       })
     }
   })
@@ -440,28 +455,6 @@ SSDP.prototype._parseResponse = function parseResponse(msg, rinfo) {
 
 SSDP.prototype.addUSN = function (device) {
   this._usns[device] = this._udn + '::' + device
-}
-
-
-
-SSDP.prototype._getSSDPHeader = function (method, headers, isResponse) {
-  var message = []
-
-  method = method.toUpperCase()
-
-  if (isResponse) {
-    message.push('HTTP/1.1 ' + method)
-  } else {
-    message.push(method + ' * HTTP/1.1')
-  }
-
-  Object.keys(headers).forEach(function (header) {
-    message.push(header + ': ' + headers[header])
-  })
-
-  message.push('\r\n')
-
-  return message.join('\r\n')
 }
 
 
@@ -516,8 +509,23 @@ SSDP.prototype._send = function (message, host, port, cb) {
 
   async.each(ipAddresses, function (ipAddress, next) {
     var socket = self.sockets[ipAddress]
+    var buf
 
-    socket.send(message, 0, message.length, port, host, next)
+    if (message instanceof SsdpHeader) {
+      if (message.isOverrideLocationOnSend()) {
+        var location = self._locationProtocol + ipAddress + ':' + self._locationPort + self._locationPath
+        self._logger('Setting LOCATION header "%s" on message ID %s', location, message.id())
+        buf = message.toBuffer({'LOCATION': location})
+      } else {
+        buf = message.toBuffer()
+      }
+    } else {
+      buf = message
+    }
+
+    self._logger('Sending a message to %s:%s', host, port)
+
+    socket.send(buf, 0, buf.length, port, host, next)
   }, cb)
 }
 

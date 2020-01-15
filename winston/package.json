@@ -2,39 +2,14 @@
   "name": "winston",
   "description": "A multi-transport async logging library for Node.js",
   "version": "2.4.0",
-  "author": {
-    "name": "Charlie Robbins",
-    "email": "charlie.robbins@gmail.com"
-  },
+  "author": "Charlie Robbins <charlie.robbins@gmail.com>",
   "maintainers": [
-    {
-      "email": "chjjeffrey@gmail.com",
-      "name": "chjj"
-    },
-    {
-      "email": "jcrugzz@gmail.com",
-      "name": "jcrugzz"
-    },
-    {
-      "email": "albertopose@gmail.com",
-      "name": "pose"
-    },
-    {
-      "email": "npm@3rd-Eden.com",
-      "name": "v1"
-    },
-    {
-      "email": "npm@3rd-Eden.com",
-      "name": "3rdeden"
-    },
-    {
-      "email": "charlie.robbins@gmail.com",
-      "name": "indexzero"
-    }
+    "Jarrett Cruger <jcrugzz@gmail.com>",
+    "Alberto Pose <albertopose@gmail.com>"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/winstonjs/winston.git"
+    "url": "https://github.com/winstonjs/winston.git"
   },
   "keywords": [
     "winston",
@@ -63,29 +38,5 @@
   "engines": {
     "node": ">= 0.10.0"
   },
-  "license": "MIT",
-  "gitHead": "ffe883e4c8e467e543eda2e0673370f176bd5eb7",
-  "bugs": {
-    "url": "https://github.com/winstonjs/winston/issues"
-  },
-  "homepage": "https://github.com/winstonjs/winston#readme",
-  "_id": "winston@2.4.0",
-  "_shasum": "808050b93d52661ed9fb6c26b3f0c826708b0aee",
-  "_from": "winston@2.4.0",
-  "_npmVersion": "3.10.10",
-  "_nodeVersion": "6.10.0",
-  "_npmUser": {
-    "name": "indexzero",
-    "email": "charlie.robbins@gmail.com"
-  },
-  "dist": {
-    "shasum": "808050b93d52661ed9fb6c26b3f0c826708b0aee",
-    "tarball": "https://registry.npmjs.org/winston/-/winston-2.4.0.tgz"
-  },
-  "_npmOperationalInternal": {
-    "host": "s3://npm-registry-packages",
-    "tmp": "tmp/winston-2.4.0.tgz_1506920353218_0.3485619300045073"
-  },
-  "directories": {},
-  "_resolved": "https://registry.npmjs.org/winston/-/winston-2.4.0.tgz"
+  "license": "MIT"
 }

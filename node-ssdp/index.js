@@ -22,17 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-if ( process.env.SSDP_COV ) {
-  module.exports = {
-    Server: require('./lib-cov/server'),
-    Client: require('./lib-cov/client'),
-    Base: require('./lib-cov/index')
-  }
-} else {
-  module.exports = {
-    Server: require('./lib/server'),
-    Client: require('./lib/client'),
-    Base: require('./lib/index')
-  }
+module.exports = {
+  Server: require("./lib/server"),
+  Client: require("./lib/client"),
+  Base: require("./lib/index")
 }
-

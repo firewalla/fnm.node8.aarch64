@@ -4,13 +4,19 @@
 
 ------------------------------------------------
 
-[![Build Status](https://img.shields.io/circleci/project/FGRibreau/node-request-retry.svg)](https://circleci.com/gh/FGRibreau/node-request-retry/) [![Coverage Status](https://img.shields.io/coveralls/FGRibreau/node-request-retry/master.svg)](https://coveralls.io/github/FGRibreau/node-request-retry?branch=master) [![Deps](	https://img.shields.io/david/FGRibreau/node-request-retry.svg)](https://david-dm.org/FGRibreau/node-request-retry) [![NPM version](https://img.shields.io/npm/v/requestretry.svg)](http://badge.fury.io/js/requestretry) [![Downloads](http://img.shields.io/npm/dm/requestretry.svg)](https://www.npmjs.com/package/requestretry)
+[![Build Status](https://img.shields.io/circleci/project/github/FGRibreau/node-request-retry.svg)](https://circleci.com/gh/FGRibreau/node-request-retry/) [![Coverage Status](https://img.shields.io/coveralls/FGRibreau/node-request-retry/master.svg)](https://coveralls.io/github/FGRibreau/node-request-retry?branch=master) [![Deps](	https://img.shields.io/david/FGRibreau/node-request-retry.svg)](https://david-dm.org/FGRibreau/node-request-retry) [![NPM version](https://img.shields.io/npm/v/requestretry.svg)](http://badge.fury.io/js/requestretry) [![Downloads](http://img.shields.io/npm/dm/requestretry.svg)](https://www.npmjs.com/package/requestretry)
 
 [![Get help on Codementor](https://cdn.codementor.io/badges/get_help_github.svg)](https://www.codementor.io/francois-guillaume-ribreau?utm_source=github&utm_medium=button&utm_term=francois-guillaume-ribreau&utm_campaign=github)  [![available-for-advisory](https://img.shields.io/badge/available%20for%20consulting%20advisory-yes-ff69b4.svg?)](http://bit.ly/2c7uFJq) ![extra](https://img.shields.io/badge/actively%20maintained-yes-ff69b4.svg)
 
-![NPM](https://nodei.co/npm/requestretry.png?downloadRank=true) ![NPM](https://nodei.co/npm-dl/requestretry.png?months=3&height=2)
+![NPM](https://nodei.co/npm/requestretry.png?downloadRank=true)
 
-When the connection fails with one of `ECONNRESET`, `ENOTFOUND`, `ESOCKETTIMEDOUT`, `ETIMEDOUT`, `ECONNREFUSED`, `EHOSTUNREACH`, `EPIPE`, `EAI_AGAIN` or when an HTTP 5xx error occurrs, the request will automatically be re-attempted as these are often recoverable errors and will go away on retry.
+When the connection fails with one of `ECONNRESET`, `ENOTFOUND`, `ESOCKETTIMEDOUT`, `ETIMEDOUT`, `ECONNREFUSED`, `EHOSTUNREACH`, `EPIPE`, `EAI_AGAIN` or when an HTTP 5xx or 429 error occurrs, the request will automatically be re-attempted as these are often recoverable errors and will go away on retry.
+
+
+> ## ❤️ Shameless plug
+> - [**Charts, simple as a URL**. No more server-side rendering pain, 1 url = 1 chart](https://image-charts.com)
+> - [Looking for a free **Redis GUI**?](http://redsmin.com) [Or for **real-time alerting** & monitoring for Redis?](http://redsmin.com)
+> - [**Mailpopin**](https://mailpop.in/) - **Stripe** payment emails you can actually use
 
 ## Installation
 
@@ -20,7 +26,7 @@ Install with [npm](https://npmjs.org/package/requestretry).
 
 ## Usage
 
-Request-retry is a drop-in replacement for [request](https://github.com/mikeal/request) but adds two new options `maxAttempts` and `retryDelay`. It also adds one property to the response, `attempts`. It supports callbacks or promises.
+Request-retry is a drop-in replacement for [request](https://github.com/mikeal/request) but adds two new options `maxAttempts` and `retryDelay`. It also adds one property to the response (or the error object, upon a network error), `attempts`. It supports callbacks or promises.
 
 ### With callbacks
 
@@ -107,11 +113,46 @@ A retry strategy let you specify when request-retry should retry a request
  * @param  {Null | Object} err
  * @param  {Object} response
  * @param  {Object} body
+ * @param  {Object} options copy 
  * @return {Boolean} true if the request should be retried
  */
-function myRetryStrategy(err, response, body){
+function myRetryStrategy(err, response, body, options){
   // retry the request if we had an error or if the response was a 'Bad Gateway'
-  return err || response.statusCode === 502;
+  return !!err || response.statusCode === 502;
+}
+
+/**
+ * @param  {Null | Object} err
+ * @param  {Object} response
+ * @param  {Object} body
+ * @param  {Object} options copy 
+ * @return {Object} mustRetry: {Boolean} true if the request should be retried
+ *                  options: {Object} new options for request
+ */
+function myRetryStrategy(err, response, body, options){
+  options.url = 'new url'; //you can overwrite some attributes or create new object 
+  return {
+    mustRetry: !!err || response.statusCode === 502,
+    options: options, //then it should be passed back, it will be used for new requests
+  }
+}
+
+/**
+ * With an asynchronous retry strategy
+ * @param  {Null | Object} err
+ * @param  {Object} response
+ * @param  {Object} body
+ * @param  {Object} options copy 
+ * @return {Object} mustRetry: {Boolean} true if the request should be retried
+ *                  options: {Object} new options for request
+ */
+async function myRetryStrategy(err, response, body, options){
+  let token = await getNewApiAuthToken();
+  options.headers = {'Authorization': `Bearer ${token}`}
+  return {
+    mustRetry: true,
+    options: options, // retry with new auth token
+  }
 }
 
 request({
@@ -147,6 +188,57 @@ request({
   // this callback will only be called when the request succeeded or after maxAttempts or on error
 });
 ```
+
+Here is how to implement an exponential backoff strategy:
+
+```javascript
+/**
+ * @param   {Number} attempts The number of times that the request has been attempted.
+ * @return  {Number} number of milliseconds to wait before retrying again the request.
+ */
+function getExponentialBackoff(attempts) {
+  return (Math.pow(2, attempts) * 100) + Math.floor(Math.random() * 50);
+}
+
+function constructExponentialBackoffStrategy() {
+  let attempts = 0;
+  return () => {
+    attempts += 1;
+    return getExponentialBackoff(attempts);
+  };
+}
+
+request({
+  url: 'https://api.domain.com/v1/a/b'
+  json:true,
+  delayStrategy: constructExponentialBackoffStrategy() // need to invoke the function to return the closure.
+}, function(err, response, body){
+  // this callback will only be called when the request succeeded or after maxAttempts or on error
+});
+```
+
+## How to access the underlying request library
+
+You can access to the underlying `request` library thanks to `request.Request`:
+
+```javascript
+const request = require('requestretry');
+console.log(request.Request); // original request library
+```
+
+Thus, if needed, it's possible to monkey-patch or extend the underlying Request library:
+
+```javascript
+request.Request = class extends request.Request {
+  constructor(url, options, f, retryConfig) {
+    super(url, options, f, retryConfig);
+    // this constructor will be called for every requestretry call,
+    // and give you global logging
+    console.log('Request', url, options, f, retryConfig);
+  }
+}
+```
+
 
 ## Modifying `request` options
 

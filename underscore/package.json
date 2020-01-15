@@ -1,7 +1,7 @@
 {
   "name": "underscore",
   "description": "JavaScript's functional programming helper library.",
-  "homepage": "http://underscorejs.org",
+  "homepage": "https://underscorejs.org",
   "keywords": [
     "util",
     "functional",
@@ -9,46 +9,43 @@
     "client",
     "browser"
   ],
-  "author": {
-    "name": "Jeremy Ashkenas",
-    "email": "jeremy@documentcloud.org"
-  },
+  "author": "Jeremy Ashkenas <jeremy@documentcloud.org>",
   "repository": {
     "type": "git",
     "url": "git://github.com/jashkenas/underscore.git"
   },
   "main": "underscore.js",
-  "version": "1.8.3",
+  "version": "1.9.2",
   "devDependencies": {
+    "coveralls": "^2.11.2",
     "docco": "*",
-    "eslint": "0.6.x",
-    "karma": "~0.12.31",
-    "karma-qunit": "~0.1.4",
+    "eslint": "1.10.x",
+    "gzip-size-cli": "^1.0.0",
+    "karma": "^0.13.13",
+    "karma-qunit": "~2.0.1",
+    "karma-sauce-launcher": "^1.2.0",
+    "nyc": "^2.1.3",
+    "pretty-bytes-cli": "^1.0.0",
     "qunit-cli": "~0.2.0",
-    "uglify-js": "2.4.x"
+    "qunit": "^2.6.0",
+    "uglify-js": "3.3.21"
   },
   "scripts": {
-    "test": "npm run test-node && npm run lint",
+    "test": "npm run lint && npm run test-node",
+    "coverage": "nyc npm run test-node && nyc report",
+    "coveralls": "nyc npm run test-node && nyc report --reporter=text-lcov | coveralls",
     "lint": "eslint underscore.js test/*.js",
     "test-node": "qunit-cli test/*.js",
-    "test-browser": "npm i karma-phantomjs-launcher && ./node_modules/karma/bin/karma start",
-    "build": "uglifyjs underscore.js -c \"evaluate=false\" --comments \"/    .*/\" -m --source-map underscore-min.map -o underscore-min.js",
-    "doc": "docco underscore.js"
+    "test-browser": "npm i karma-phantomjs-launcher && karma start",
+    "minify": "uglifyjs underscore.js -c \"evaluate=false\" --comments \"/    .*/\" -m",
+    "build": "npm run minify -- --source-map --source-map-url \" \" -o underscore-min.js",
+    "doc": "docco underscore.js",
+    "weight": "npm run minify | gzip-size | pretty-bytes"
   },
   "license": "MIT",
   "files": [
     "underscore.js",
     "underscore-min.js",
-    "underscore-min.map",
-    "LICENSE"
-  ],
-  "readme": "                       __\n                      /\\ \\                                                         __\n     __  __    ___    \\_\\ \\     __   _ __   ____    ___    ___   _ __    __       /\\_\\    ____\n    /\\ \\/\\ \\ /' _ `\\  /'_  \\  /'__`\\/\\  __\\/ ,__\\  / ___\\ / __`\\/\\  __\\/'__`\\     \\/\\ \\  /',__\\\n    \\ \\ \\_\\ \\/\\ \\/\\ \\/\\ \\ \\ \\/\\  __/\\ \\ \\//\\__, `\\/\\ \\__//\\ \\ \\ \\ \\ \\//\\  __/  __  \\ \\ \\/\\__, `\\\n     \\ \\____/\\ \\_\\ \\_\\ \\___,_\\ \\____\\\\ \\_\\\\/\\____/\\ \\____\\ \\____/\\ \\_\\\\ \\____\\/\\_\\ _\\ \\ \\/\\____/\n      \\/___/  \\/_/\\/_/\\/__,_ /\\/____/ \\/_/ \\/___/  \\/____/\\/___/  \\/_/ \\/____/\\/_//\\ \\_\\ \\/___/\n                                                                                  \\ \\____/\n                                                                                   \\/___/\n\nUnderscore.js is a utility-belt library for JavaScript that provides\nsupport for the usual functional suspects (each, map, reduce, filter...)\nwithout extending any core JavaScript objects.\n\nFor Docs, License, Tests, and pre-packed downloads, see:\nhttp://underscorejs.org\n\nUnderscore is an open-sourced component of DocumentCloud:\nhttps://github.com/documentcloud\n\nMany thanks to our contributors:\nhttps://github.com/jashkenas/underscore/contributors\n",
-  "readmeFilename": "README.md",
-  "bugs": {
-    "url": "https://github.com/jashkenas/underscore/issues"
-  },
-  "_id": "underscore@1.8.3",
-  "_shasum": "4f3fb53b106e6097fcf9cb4109f2a5e9bdfa5022",
-  "_resolved": "https://registry.npmjs.org/underscore/-/underscore-1.8.3.tgz",
-  "_from": "https://registry.npmjs.org/underscore/-/underscore-1.8.3.tgz"
+    "underscore-min.js.map"
+  ]
 }

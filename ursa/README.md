@@ -1,9 +1,10 @@
 URSA - RSA public/private key OpenSSL bindings for Node.js
 ====
 
-[![Build Status](https://travis-ci.org/quartzjer/ursa.svg?branch=master)](https://travis-ci.org/quartzjer/ursa)
 
-> NOTE: This package was transfered from [Medium](https://github.com/Medium) and [NodePrime](https://github.com/NodePrime) to [quartzjer](https://github.com/quartzjer) in February 2015. Pull requests are welcomed to help maintain it.
+[![Build Status](https://travis-ci.org/JoshKaufman/ursa.svg?branch=master)](https://travis-ci.org/JoshKaufman/ursa)
+
+> NOTE: This package was transfered from [Medium](https://github.com/Medium) and [NodePrime](https://github.com/NodePrime) to [quartzjer](https://github.com/quartzjer) to [JoshKaufman](https://github.com/joshkaufman) on 8-2017. Pull requests are welcomed to help maintain it.
 
 --
 

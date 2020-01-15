@@ -1,7 +1,9 @@
 var SSDP = require('../index').Server
   , server = new SSDP({
-    //unicastHost: '192.168.11.63',
-    location: require('ip').address() + '/desc.html'
+    location: {
+      port: 8080,
+      path: '/ssdp/device-desc.xml'
+    }
   })
 
 server.addUSN('upnp:rootdevice')
@@ -22,3 +24,9 @@ server.on('advertise-bye', function (heads) {
 
 // start server on all interfaces
 server.start()
+  .catch(e => {
+    console.log('Failed to start server:', e)
+  })
+  .then(() => {
+    console.log('Server started.')
+  })

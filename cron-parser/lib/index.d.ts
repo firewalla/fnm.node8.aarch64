@@ -50,11 +50,12 @@ declare class CronDate {
 }
 
 interface ParserOptions {
-  currentDate: string | number | Date
-  endDate: string | number | Date
-  iterator: boolean
-  utc: boolean
-  tz: string
+  currentDate?: string | number | Date
+  startDate?: string | number | Date
+  endDate?: string | number | Date
+  iterator?: boolean
+  utc?: boolean
+  tz?: string
 }
 
 declare class CronExpression {
@@ -74,7 +75,7 @@ declare class CronExpression {
   iterate(steps: number, callback?: (item: CronDate, i: number) => any): CronDate[]
 
   /** Reset expression iterator state */
-  reset(): void
+  reset(resetDate?: string | number | Date): void
 
   /** Parse input expression (async) */
   parse(expression: string, options?: ParserOptions, callback?: () => any): CronExpression
